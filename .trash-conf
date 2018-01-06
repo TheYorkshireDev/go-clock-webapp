@@ -1,0 +1,6 @@
+imports:
+  github.com/gorilla/mux:
+    package: github.com/gorilla/mux
+    version: v1.6.0
+    update: false
+    options: {}
