@@ -1,20 +1,63 @@
 <!doctype html>
 <html class="no-js" lang="">
-    <head>
-        <meta charset="utf-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-        <title></title>
-        <meta name="description" content="">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-    </head>
-    <body>
-        <!--[if lt IE 8]>
-            <p class="browserupgrade">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
-        <![endif]-->
 
-        <p>Hello world! This is HTML5 Boilerplate.</p>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title></title>
+  <meta name="description" content="">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+</head>
 
-        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
-        <script>window.jQuery || document.write('<script src="js/vendor/jquery-1.11.2.min.js"><\/script>')</script>
-    </body>
+<body>
+  <!--[if lt IE 8]>
+    <p class="browserupgrade">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+  <![endif]-->
+
+  <h1>Golang Clock WebApp</h1>
+
+  <h3>
+    <span id="name">Header Text</span>
+    <button id="get-time-manually">Update Time</button>
+  </h3>
+  <hr/>
+
+  <div id="container"></div>
+
+  <script type="text/javascript">
+    $( document ).ready(function() {
+      getTime();
+
+      $( "#get-time-manually" ).click(function() {
+        getTime();
+      });
+
+      var ws;
+      if (window.WebSocket === undefined) {
+          $("#container").append("Your browser does not support WebSockets");
+          return;
+      } else {
+          ws = initWS();
+      }
+    });
+
+    function getTime() {
+      $.get( "/time", function( data ) {
+        $( "#name" ).html( JSON.parse(data) );
+      });
+    };
+
+    function initWS() {
+      var socket = new WebSocket("ws://localhost:8080/ws"),
+        container = $("#container")
+        socket.onmessage = function (e) {
+            $( "#name" ).html( JSON.parse(e.data) );
+        };
+
+      return socket;
+    };
+  </script>
+</body>
+
 </html>

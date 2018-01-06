@@ -4,3 +4,8 @@ imports:
     version: v1.6.0
     update: false
     options: {}
+  github.com/gorilla/websocket:
+    package: github.com/gorilla/websocket
+    version: v1.2.0
+    update: false
+    options: {}
