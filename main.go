@@ -1,81 +1,51 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
+	"html/template"
 	"net/http"
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/gorilla/websocket"
 )
 
+type Page struct {
+	Title string
+	Body  string
+}
+
+// Load all templates all on startup
+var templates = template.Must(template.ParseGlob("templates/*"))
+
 func newRouter() *mux.Router {
+	dir := "assets"
+
 	router := mux.NewRouter()
 
-	router.HandleFunc("/time", getTimeHandler).Methods("GET")
-	router.HandleFunc("/ws", getWebSocketHandler)
-
-	// /assets/ Page
-	staticFileDirectory := http.Dir("./assets/")
-	staticFileHandler := http.StripPrefix("/assets/", http.FileServer(staticFileDirectory))
-	router.PathPrefix("/assets/").Handler(staticFileHandler).Methods("GET")
+	router.HandleFunc("/", indexHandler).Methods("GET")
+	router.HandleFunc("/time", timeHandler).Methods("GET")
+	router.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", http.FileServer(http.Dir(dir)))).Methods("GET")
+	router.NotFoundHandler = http.HandlerFunc(pageNotFoundHandler)
 
 	return router
 }
 
-func main() {
-	router := newRouter()
-
-	http.ListenAndServe(":8080", router)
-}
-
-func getTimeHandler(w http.ResponseWriter, r *http.Request) {
-
-	timeBytes, err := json.Marshal(getTimeNow())
-
-	// If there is an error, print it to the console, and return a server
-	// error response to the user
+func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
+	err := templates.ExecuteTemplate(w, tmpl+".html", p)
 	if err != nil {
-		fmt.Println(fmt.Errorf("Error: %v", err))
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-
-	// If all goes well, write the JSON to the response
-	w.Write(timeBytes)
 }
 
-func getWebSocketHandler(w http.ResponseWriter, r *http.Request) {
-
-	if r.Header.Get("Origin") != "http://"+r.Host {
-		//"ws://" + location.host + "/ws"
-		http.Error(w, "Origin not allowed", 403)
-		return
-	}
-
-	conn, err := websocket.Upgrade(w, r, w.Header(), 1024, 1024)
-	if err != nil {
-		http.Error(w, "Could not open websocket connection", http.StatusBadRequest)
-	}
-
-	go timeRoutine(conn)
-
+func indexHandler(w http.ResponseWriter, r *http.Request) {
+	renderTemplate(w, "index", &Page{Title: "Index", Body: "This is the HomePage"})
 }
 
-func timeRoutine(conn *websocket.Conn) {
+func timeHandler(w http.ResponseWriter, r *http.Request) {
+	renderTemplate(w, "time", &Page{Title: "Time", Body: getTimeNow()})
+}
 
-	t := time.NewTicker(time.Second * 3)
-	for {
-
-		timeString := getTimeNow()
-
-		if err := conn.WriteJSON(timeString); err != nil {
-			fmt.Println(err)
-		}
-
-		<-t.C
-	}
+func pageNotFoundHandler(w http.ResponseWriter, r *http.Request) {
+	renderTemplate(w, "404", &Page{Title: "Page Not Found", Body: "This is not the page your looking for"})
 }
 
 func getTimeNow() string {
@@ -83,4 +53,10 @@ func getTimeNow() string {
 	formattedTime := timeNow.Format("Mon Jan 02 15:04:05 MST 2006")
 
 	return formattedTime
+}
+
+func main() {
+	router := newRouter()
+
+	http.ListenAndServe(":8080", router)
 }
